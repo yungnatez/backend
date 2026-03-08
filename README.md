@@ -1,75 +1,27 @@
-# Nmap Scanner Backend
+# Scan Me Solutions – Backend
 
-A simple Flask backend that receives scan requests, runs Nmap safely, and returns results as JSON.
+This is the backend for the Scan Me Solutions web app. It exposes a simple REST API that runs Nmap scans and returns the results as JSON. The frontend just needs to hit the endpoints below — no setup required on your end.
 
 ---
 
-## Project Structure
+## Live API
 
 ```
-backend/
-├── app.py           # Flask app and API routes
-├── scanner.py       # Runs Nmap and parses results
-├── validators.py    # Input validation
-├── requirements.txt # Python dependencies
-└── README.md        # This file
+https://backend-production-fafd9.up.railway.app
 ```
 
 ---
 
-## Prerequisites
+## Endpoints
 
-### 1. Install Nmap
+### GET /health
+Check the server is up.
 
-On macOS using Homebrew:
-
-```bash
-brew install nmap
+```
+GET https://backend-production-fafd9.up.railway.app/health
 ```
 
-Verify it works:
-
-```bash
-nmap --version
-```
-
-### 2. Install Python dependencies
-
-It's recommended to use a virtual environment:
-
-```bash
-# Create and activate a virtual environment
-python3 -m venv venv
-source venv/bin/activate
-
-# Install dependencies
-pip install -r requirements.txt
-```
-
----
-
-## Running the Server
-
-```bash
-python app.py
-```
-
-The server starts on `http://localhost:5000`.
-
----
-
-## API Endpoints
-
-### `GET /health`
-
-Returns the health status of the server.
-
-**Example:**
-```bash
-curl http://localhost:5000/health
-```
-
-**Response:**
+Response:
 ```json
 {
   "status": "ok",
@@ -79,11 +31,15 @@ curl http://localhost:5000/health
 
 ---
 
-### `POST /api/scan`
+### POST /api/scan
+Run a scan against a target.
 
-Runs an Nmap scan against a target.
+```
+POST https://backend-production-fafd9.up.railway.app/api/scan
+Content-Type: application/json
+```
 
-**Request body:**
+Request body:
 ```json
 {
   "target": "scanme.nmap.org",
@@ -91,32 +47,25 @@ Runs an Nmap scan against a target.
 }
 ```
 
-**Allowed `scan_type` values:**
+Scan types:
 
-| scan_type       | Nmap flags used       | Description                     |
-|-----------------|-----------------------|---------------------------------|
-| `basic`         | `-F`                  | Fast scan of common ports       |
-| `top_ports`     | `--top-ports 100`     | Scans the top 100 ports         |
-| `service_detect`| `-sV`                 | Detects service versions        |
+| scan_type | What it does |
+|---|---|
+| `basic` | Quick scan of the most common ports |
+| `top_ports` | Scans the top 100 ports |
+| `service_detect` | Detects what services are running on open ports |
 
-**Example:**
-```bash
-curl -X POST http://localhost:5000/api/scan \
-  -H "Content-Type: application/json" \
-  -d '{"target": "scanme.nmap.org", "scan_type": "basic"}'
-```
-
-**Success response:**
+Success response:
 ```json
 {
   "target": "scanme.nmap.org",
   "scan_type": "basic",
   "status": "completed",
-  "open_ports": [22, 80]
+  "open_ports": [80, 443]
 }
 ```
 
-**Error response (bad input):**
+Error response (e.g. bad input):
 ```json
 {
   "error": "Invalid scan_type. Allowed values: basic, top_ports, service_detect."
@@ -125,9 +74,39 @@ curl -X POST http://localhost:5000/api/scan \
 
 ---
 
-## Security Notes
+## Notes for the frontend
 
-- Users **cannot** pass raw Nmap flags. Only predefined scan types are accepted.
-- Input is validated with regex before being passed to the subprocess.
-- `subprocess.run()` is called with a **list** (not a string), which fully prevents shell injection.
-- The scan has a **60-second timeout** to prevent the server from hanging.
+- All responses are JSON
+- Scans take roughly 15–30 seconds — worth showing a loading state in the UI
+- `open_ports` is always an array of integers (port numbers)
+- If something goes wrong the response will have an `"error"` key with a description
+- CORS is enabled so you can call the API directly from the browser with no issues
+
+---
+
+## Project structure
+
+```
+backend/
+├── app.py           # Flask routes
+├── scanner.py       # Runs Nmap and parses output
+├── validators.py    # Input validation
+├── requirements.txt # Python dependencies
+├── Dockerfile       # Container setup (used by Railway)
+└── railway.toml     # Railway config
+```
+
+---
+
+## Running locally (optional)
+
+You'll need Python 3 and Nmap installed (`brew install nmap` on Mac).
+
+```bash
+python3 -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
+python app.py
+```
+
+Server runs on `http://localhost:5000`.
