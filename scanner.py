@@ -23,7 +23,7 @@ def run_scan(target, nmap_flags):
 
     # Build the command as a list — this is critical for security.
     # subprocess with a list (not a string) avoids shell injection entirely.
-    command = ["nmap"] + nmap_flags + [target]
+    command = ["nmap", "--unprivileged", "-Pn"] + nmap_flags + [target]
 
     try:
         # Run nmap with a timeout so the server doesn't hang indefinitely.
